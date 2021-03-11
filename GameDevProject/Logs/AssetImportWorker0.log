@@ -506,3 +506,4 @@ Received Import Request.
 Start importing Assets/Scripts/BoidsWander.cs using Guid(327d75d1aa531c64cb3fc4271a32966e) Importer(815301076,1909f56bfc062723c751e8b465ee728b)  -> (artifact id: '13dd32fda43a3b617fd11f49b2c0551c') in 0.015202 seconds
   Import took 0.019957 seconds .
 
+AssetImportWorkerClient::OnTransportError - code=2 error=End of file
