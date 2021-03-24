@@ -17,15 +17,27 @@ public class PlayerMovement : MonoBehaviour
     Vector3 velocity;
     bool isGrounded;
 
-    // Start is called before the first frame update
+    public Camera cam;
+
+    private GameObject heldItem = null;
+    public GameObject HeldItem
+    {
+        get { return heldItem; }
+        set 
+        {
+            heldItem = value; 
+        }
+    }
+
+
+
     void Start()
     {
         
     }
-
-    // Update is called once per frame
     void Update()
     {
+        #region Movement
         isGrounded = Physics.CheckSphere(groundCheck.position, groundDistance, groundMask);
 
         if (isGrounded && velocity.y < 0)
@@ -46,5 +58,33 @@ public class PlayerMovement : MonoBehaviour
 
         velocity.y += gravity * Time.deltaTime;
         controller.Move(velocity * Time.deltaTime);
+        #endregion
+        #region Interact
+        if (Input.GetKeyDown(KeyCode.E))
+        {
+            if (HeldItem == null)
+            {
+                print("attempting to pick up item...");
+                //get ray out from middle of camera view
+                Ray viewRay = cam.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0));
+                Debug.DrawRay(viewRay.origin, viewRay.direction*2, Color.cyan, 0.5f);
+
+                //do a raycast with that particular ray, looking for InteractableObjects;
+                if (Physics.Raycast(viewRay, out RaycastHit hit, 2.5f))
+                {
+                    print(hit.collider.gameObject.TryGetComponent(out Interactable test));
+                    if (hit.collider.gameObject.TryGetComponent(out Interactable obj))
+                    {
+                        print("interacting...");
+                        obj.Interact();
+                    }
+                }
+            }
+            else
+            {
+                HeldItem.GetComponent<ObjectPickUp>().LetGo();
+            }
+        }
+        #endregion
     }
 }

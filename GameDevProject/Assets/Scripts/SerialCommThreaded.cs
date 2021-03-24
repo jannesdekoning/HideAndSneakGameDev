@@ -20,6 +20,7 @@ public class SerialCommThreaded : MonoBehaviour
 {
     public string portName = "COM3";
     public SerialPort sp;
+    public Safe safe;
     private bool blnPortcanopen = false; //if portcanopen is true the selected comport is open
 
     //statics to communicate with the serial com thread
@@ -28,12 +29,14 @@ public class SerialCommThreaded : MonoBehaviour
     static private int databyte_out; //index in txChars array of possible characters to send
     static private bool databyteWrite = false; //to let the serial com thread know there is a byte to send
     //txChars contains the characters to send: we have to use the index
-    private char[] txChars = { 'A', 'U' };
+    private byte[] sendBuffer = { 0, 1, 255, 254 };
 
     //threadrelated
     private bool stopSerialThread = false; //to stop the thread
     private Thread readWriteSerialThread; //threadvariabele
 
+    private int rotation;
+    private int previousReadByte;
     void Start()
     {
         sp = new SerialPort(portName, 9600, Parity.None, 8, StopBits.One);
@@ -48,34 +51,35 @@ public class SerialCommThreaded : MonoBehaviour
         if (databyteRead) //if a databyte is received
         {
             databyteRead = false; //to see if a next databyte is received
-            char inputChar = (char)databyte_in;
-            Debug.Log(inputChar);
-            if(inputChar == 'L')
+            byte inputToByte = (byte)databyte_in;
+            Debug.Log(inputToByte);
+
+            if (inputToByte == 0) //if input is 0, then the code is incorrect, display a msg in unity
+                StartCoroutine(safe.DisplayError());
+            //if true, open the safe
+            else if (inputToByte == 1) //code is correct, open the vault!
             {
-                PlayerControls.enableGrow = true;
+                StartCoroutine(safe.Open());
+                sp.Write(sendBuffer, 3, 1);
             }
-            else if (inputChar == 'R')
+            else //if (databyte_in != previousReadByte) //if it's any other value that doesn't match current the rotation, update and check the rotation
             {
-                PlayerControls.enableShrink = true;
+                //previousReadByte = databyte_in;
+                rotation = databyte_in - 122; //convert from byte to actual rotation value;
+                Debug.Log(rotation);
+                safe.knob.localRotation = Quaternion.Euler(0,rotation,0);
+                if (Math.Abs(safe.Passcode - databyte_in) > 4)
+                {
+                    databyte_out = 0;
+                    databyteWrite = true;
+                }
+                else
+                {
+                    Debug.Log("value is right!");
+                    databyte_out = 1;
+                    databyteWrite = true;
+                }
             }
-            else if (inputChar == 'l')
-            {
-                PlayerControls.enableGrow = false;
-            }
-            else if (inputChar == 'r')
-            {
-                PlayerControls.enableShrink = false;
-            }
-        }
-        if (PlayerControls.isTouching)
-        {
-            databyte_out = 0; //index in txChars
-            databyteWrite = true;
-        }
-        if (!PlayerControls.isTouching)
-        {
-            databyte_out = 1; //index in txChars
-            databyteWrite = true;
         }
     }
 
@@ -90,17 +94,17 @@ public class SerialCommThreaded : MonoBehaviour
                 {
                     if (databyte_out == 0)
                     {
-                        sp.Write(txChars, 0, 1); //tx 'A'
+                        sp.Write(sendBuffer, 0, 1); //tx 0
                     }
                     if (databyte_out == 1)
                     {
-                        sp.Write(txChars, 1, 1); //tx 'U'
+                        sp.Write(sendBuffer, 1, 1); //tx 1
                     }
                     databyteWrite = false; //to be able to send again
                 }
                 try //trying something to receive takes 20 ms = sp.ReadTimeout
                 {
-                    databyte_in = sp.ReadChar();
+                    databyte_in = sp.ReadByte();
                     databyteRead = true;
                 }
                 catch (Exception)
