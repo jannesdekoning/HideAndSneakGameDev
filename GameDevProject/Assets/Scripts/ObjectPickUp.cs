@@ -17,7 +17,7 @@ public class ObjectPickUp : Interactable
 
     public override void Interact()
     {
-        //print("You pick me up!");
+        print("You pick me up!");
         //rb.isKinematic = true;
         rb.constraints = RigidbodyConstraints.FreezeAll;
         rb.useGravity = false;
@@ -28,7 +28,7 @@ public class ObjectPickUp : Interactable
 
     public void LetGo()
     {
-        //print("You dropped me!");
+        print("You dropped me!");
         //rb.isKinematic = false;
         rb.constraints = RigidbodyConstraints.None;
         rb.useGravity = true;
